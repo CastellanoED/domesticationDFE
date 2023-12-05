@@ -1,0 +1,25 @@
+# each parameter is preceded by a flag; 0: estimate; 1: fix; 2: estimate shared 
+
+# full DFE without r
+#ID   eps an    eps cont  lambda    theta bar  a     S d      b      p b      S b      r (at least #groups-1 of them)
+0     0 0.05    1 0.00    0 0.005   0 0.001    0 2   0 -100   0 0.3  0 0.01   0 10     1  1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+
+# only deleterious DFE
+#ID   eps an    eps cont  lambda    theta bar  a     S d      b      p b      S b      r (at least #groups-1 of them)
+1     0 0.05    1 0.00    0 0.005   0 0.001    0 2   0 -100   0 0.3  1 0      1 0      0  1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+
+# full DFE 
+#ID   eps an    eps cont  lambda    theta bar  a     S d      b      p b      S b      r (at least #groups-1 of them)
+2     0 0.05    1 0.00    0 0.005   0 0.001    0 2   0 -100   0 0.3  0 0.01   0 10     0  1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+
+# sharing the shape of the deleterious DFE without +DFE
+#ID   eps an    eps cont  lambda    theta bar  a      S d      b      p b      S b      r (at least #groups-1 of them)
+10    0 0.00    1 0.00    0 0.005   0 0.001    0 2    0 -100   2 0.3  1 0      1 0      0  1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+
+# sharing the shape of the deleterious DFE with +DFE
+#ID   eps an    eps cont  lambda    theta bar  a      S d      b      p b      S b      r (at least #groups-1 of them)
+20    0 0.00    1 0.00    0 0.005   0 0.001    0 2    0 -100   2 0.3  0 0.01   0 10     0  1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 
+
+# sharing the shape of the deleterious DFE and the +DFE
+#ID   eps an    eps cont  lambda    theta bar  a      S d      b      p b      S b      r (at least #groups-1 of them)
+30    0 0.00    1 0.00    0 0.005   0 0.001    0 2    0 -100   2 0.3  2 0.01   2 10     0  1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 

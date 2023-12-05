@@ -1,0 +1,398 @@
+	////////////////////////////////////////        DESCRIPTION          ////////////////////////////////////////////////////
+	// Script to run simulation of three populations under slection
+	// (outgroup, wild population and domesticated population)
+	// Demography: A botleneck at domestication process plus migration
+	// Selection: DFE for detrimental and beneficial (given a proportion of beneficial/detrimental)
+	// DFE changes in Domesticated population, according two parameters:
+	// 	-proportion of variants that change their effect
+	//	-proportion of variants that change from beneficial to detrimental and inverse
+	// The SFS for for each of the mutations (and for the global nonsynonymous) is collected.
+	// The SFS for all three populations (but we need only two, the outgroup is the reference)
+	// is obtained. one and two-dimension SFS are tabulated.
+	// The run for a single loci takes few seconds. For 10.000 loci will take several hours.
+			
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////                 parameter definitions:                  ////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	//add parameter definitions:
+
+	//Command-line options for running this slim script are:
+	// for example:
+	/*
+	slim -t -m  -d "seed=123456" -d "nloci=2000" -d "nchrom=10" -d "size_gene=150" -d "Ne_pop=100" -d "t0=10*Ne_pop" -d "t1=10*Ne_pop" -d "tbot=integerDiv(Ne_pop,100)" -d "Ne1d=integerDiv(Ne_pop,10)" -d "LNeratio=10" -d "tend=integerDiv(Ne_pop,LNeratio)-tbot" -d "migration_rate=0.15" -d "maprec='convex'" -d "mutation_rate=1e-6" -d "recrate_within=2.5e-7" -d "max_recrate_among=2.5e-2" -d "min_recrate_among=2.5e-4" -d "sample_size1=40" -d "s_mean_beneficial=10.0/(2*Ne_pop)" -d "s_mean_deleterious=-100.0/(2*Ne_pop)" -d "shape_deleterious=0.2" -d "h=0.5" -d "prop_del_anc=0.99" -d "change_prop=0.05" -d "prop_del_new=0.99" -d "Rfile_ref='./do_REF_A.R'" -d "fileREF_fa='./REF_A.fa'" -d "Rfpm_file='./calculate_fitness_position_matrix.R'" -d "file_fm='./fitness_position_matrix.txt'"  -d "file_output1='./slim_scenario1_output_sample_file.txt'" -d "file_full='./slim_scenario1_output_full_file.txt'" -d "file_log1='log1_scenario1.txt'" -d "file_log2='log2_scenario1.txt'" ./slim_code_mod4_NEW.slim &	
+	*/
+
+// set up a simulation 
+initialize() {
+	if (exists("slimgui") | (!exists("seed"))) {
+		defineConstant("seed", 1234);		
+		//general definitions
+		defineConstant("nloci",1000); //nloci=10000
+		defineConstant("size_gene",150); //must be multiple of 3!! //1500
+		defineConstant("nchrom",10); //number of chromosomes.
+		defineConstant("Ne_pop",1000); //10000 
+		//demographic process
+		defineConstant("t0",10*Ne_pop); //pre-simulation and split outgroup
+		defineConstant("t1",10*Ne_pop); //duration until split dom versus wild 
+		defineConstant("tbot",integerDiv(Ne_pop,100)); //duration of the bottleneck
+		defineConstant("Ne1d",integerDiv(Ne_pop,10)); //size of bootleneck pop. Previous was 50
+		//defineConstant("LNeratio",10); // Length in relation to Ne_pop 10 or 20 (1/0.1 or 1/0.05)
+		defineConstant("tend",integerDiv(Ne_pop,LNeratio)-tbot); // duration from bottleneck to end of simulation (0.1 / 0.05)
+		defineConstant("migration_rate",0.15); //migration from wild to domestic in bottleneck
+		//defineConstant("map_rec","flat"); //map of recombination: all position equal rec=0.5 (independent). 
+		defineConstant("maprec","convex"); //map of recombination: [convex, quadratic, conic, flat] (centromere to telomeres)
+		//quadratic is a curve awith lower value at centromere, conic is a straight line to centromere, 
+		//convex is inverse than quadratic, compensating gene density..
+		defineConstant("mutation_rate",5e-7); //mutation rate 4Nu  = 1e-2/1e4 = 1e-6. For 1/5Ne is 5e-7
+		defineConstant("recrate_within",2.5e-7); //rec rate within loci. Can be 0. 4Nr per position within gene of 5e-4. This is 2.5 cM/Mb
+		defineConstant("max_recrate_among",2.5e-2); //max rec rate among loci. 1 gene/0.3Mb, that is 3e5 * 2.5e-7 between genes
+		defineConstant("min_recrate_among",2.5e-4); //min rec rate among loci. 2 orders of magnitude lower close to centromere
+		//output sample
+		defineConstant("sample_size1",40); // sample size		
+		//files
+		defineConstant("file_output1","~../results/Simulations/slim_ss1_output_file.txt"); // output file
+		defineConstant("file_full","~../results/Simulations/slim_full.txt"); //Full Result
+		defineConstant("file_log1","~./parallel_jobs/logfile1_sim.txt"); // log0 file wild		
+		defineConstant("file_log2","~./parallel_jobs/logfile2_sim.txt"); // log1 file bott-dom
+		//R scripts
+		defineConstant("Rfile_ref","~do_REF_A.R"); // R file to make reference in fasta
+		defineConstant("fileREF_fa","~../results/fastas/REF_A.fa"); // reference fasta file
+		defineConstant("Rfpm_file","~calculate_fitness_position_matrix.R"); // R file to make fitness_position_matrix
+		defineConstant("file_fm","~../results/fitness_position_matrix/fitness_position_matrix.txt"); // fitness_position matrix file 
+		//initial distributions of fitness
+		defineConstant("h",0.5);
+		defineConstant("s_mean_beneficial",10/(2*Ne_pop));
+		defineConstant("s_mean_deleterious",-100/(2*Ne_pop));
+		defineConstant("shape_deleterious",0.2);
+		//modification of the fitness distributions: ONLY in the domesticated population
+		defineConstant("prop_del_anc",0.99); //deleterious versus beneficial mutations in ancestral pop (outgroup and wild)
+		defineConstant("change_prop",0.05); //proportion of positions that change the fitness in domestic
+		defineConstant("prop_del_new",0.99); //deleterious versus beneficial mutations in the new domestic distribution
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////                 initialize parameters:                 /////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	defineConstant("file_output1_ms", file_output1 + "_ms.txt"); // output file for ms files
+	
+	setSeed(seed);
+	initializeSLiMOptions(nucleotideBased=T);
+	//initializeAncestralNucleotides(randomNucleotides(nloci*size_gene));
+	defineConstant("RSCRIPT","Rscript");
+	system(command=paste(RSCRIPT,Rfile_ref,nloci,size_gene,fileREF_fa,sep= " "));
+	defineConstant("L", initializeAncestralNucleotides(fileREF_fa)); //The REFERENCE is "A" FOR ALL POSITIONS
+	if(L != nloci*size_gene) {
+		print("the length of the fasta file (" + L + ") is not equal that the length defined in parameters (" + nloci*size_gene + ")");
+		print("Simulation finished");
+		stop();
+	}
+	//calculate the selective effect per position and per population
+	system(command = paste(RSCRIPT,Rfpm_file, seed, nloci , size_gene, s_mean_beneficial, s_mean_deleterious, shape_deleterious, prop_del_anc, change_prop, prop_del_new, file_fm, sep =" "));
+	
+	//Initialize the type of mutations and the fitness of them 
+	//1.mutation type: neutral 2. mutation type: coding
+	initializeMutationTypeNuc("m1", h, "f", 0.0); //selection coefficient s=0
+	initializeMutationTypeNuc("m2", h, "f", 0.0);
+//Initialize the type of genomic element that we want and the proportions
+	//synonymous and nonsynonymous sites
+	initializeGenomicElementType("g1", m1, 1.0, mmJukesCantor(mutation_rate/3)); //non-coding regions
+	initializeGenomicElementType("g2", m2, 1, mmJukesCantor(mutation_rate/3));	
+	//nloci genes of size_gene base pairs each one. 
+	//Also each gene is simulated as a part of exons (g2) and a non-coding regions (g1). 
+	//Initialiazation of genomic elements (codon=2nonsyn+1syn)
+	index1=0;
+	index2=size_gene-1;
+	for (k in 1:nloci) {
+		count = 0;
+		for (i in index1:index2) {
+			count2 = count;
+			count = count2 + 1;
+			if (count == 1 | count == 2) {
+				initializeGenomicElement(g2, i, i); //non-synonymous
+			} 	else if (count == 3) {
+				initializeGenomicElement(g1, i, i); //synonymous
+				count=0;
+			}
+		}
+		index1=index2+1;
+		index2=index2+size_gene;
+	}	
+	//collect selective values for each position and population
+	file_fpm=readFile(file_fm);
+	fpm=sapply(file_fpm[1:(nloci*size_gene)],"strsplit(applyValue,sep=\"\t\");"); 
+	fitness_pos_p1=sapply(fpm[seq(2,(5*nloci*size_gene),by=5)],"asFloat(applyValue);");
+	fitness_pos_p2=sapply(fpm[seq(3,(5*nloci*size_gene),by=5)],"asFloat(applyValue);");
+	fitness_pos_p3=sapply(fpm[seq(4,(5*nloci*size_gene),by=5)],"asFloat(applyValue);");
+	defineConstant("fitness_position_p1",fitness_pos_p1); //matrix with the fitness for each position when mutates
+	defineConstant("fitness_position_p2",fitness_pos_p2); //matrix with the fitness for each position when mutates
+	defineConstant("fitness_position_p3",fitness_pos_p3); //matrix with the fitness for each position when mutates
+	
+	// The total length of the locus consist of separated genes of 1500 base pairs each one 
+	// 1...1499 -//- 1500...2999 -//- 3000 -//- 1502 etc....
+	ind2=size_gene-1;
+	ends=ind2;
+	ind1=ind2+1;
+	ind2=ind2+size_gene;
+	if(nloci > 1) {
+		for (i in 2:nloci) {
+			ends=c(ends,ind1,ind2);
+			ind1=ind2+1;
+			ind2=ind2+size_gene;
+		}
+	}
+	// The recombination rates between the base pairs and between different chromosomes is 0.5.
+	// 1/2/3/4/5/6/7/8/9...../1499 recombination rate between each bp 1/2 is 0.
+	// 1499 -//- 1500 recombination rate between different genes is 0.
+	
+	//recombination rates
+	recrate= recrate_within; //to have 4Nr per position within gene of 5e-4. This is 2.5 cM/Mb
+	// recmax = max_recrate_among; // 1 gene/0.3Mb, that is 3e5 * 2.5e-7 between genes
+	// recmin = min_recrate_among; // 2 orders of magnitude lower close to centromere
+	if(maprec != "flat") {
+		rates=NULL;
+		ind1=recrate;
+		nloci_chrom = nloci/nchrom;
+		centromere = nloci_chrom * size_gene / 2;
+		for(chrn in c(1:nchrom)) {
+			sumpos = size_gene;
+			for(nloc in 1:nloci_chrom) {
+				rates=c(rates, ind1);
+				if(maprec == "quadratic") //quadratic curve, minimum at centromere
+					ind2 = (recmax-recmin) * ((sumpos-centromere)/centromere)^2 + recmin;
+				if(maprec == "conic") //lineal from telomeres to centromere, minimum at centromere
+					ind2 = abs((recmax-recmin) * ((sumpos-centromere)/centromere)^1) + recmin;
+				if(maprec == "convex")
+					ind2 = ((recmax-recmin)-((recmax-recmin) * ((abs(sumpos-centromere)-centromere)/centromere)^2)) + recmin;
+				// convex: inverse to quadratic, drop strongly to the minimum at centromere, 
+				//         in order to compensate low density of genes at centromere
+				//max(x^2 * (recmax-recmin) + recmin)=recmax // for x=1; (sumpos=0; or sumpos=2*centromere)
+				//min(x^2 * (recmax+recmin) + recmin)=recmin //for x=0 (sumpos=centromere);
+				if(!(chrn==nchrom & nloc==nloci_chrom))  {
+					if(chrn!=nchrom & nloc==nloci_chrom)
+						rates=c(rates, 0.5);
+					else
+						rates=c(rates, ind2);
+				}
+				sumpos = sumpos + size_gene;
+			}
+		}
+	}
+	else {
+		rates=NULL;
+		ind1=recrate;
+		ind2= 20 * recrate;
+		// if coding genome is ~5%, then the recombination rate happening in non-coding regions is 1/0.05 = 20
+		// ind2 = 0.5; this is what Sebas had before
+		rates=ind1;
+		if(nloci > 1) {
+			for (i in 2:nloci) {
+				rates=c(rates, ind2, ind1);
+			}
+		}
+	}	
+	//Initialize the Recombination rates
+	initializeRecombinationRate(rates,ends);
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////                 START SIMULATION              /////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//1. STEP. INITIAL RUN TO ACCUMULATE MUTATIONS IN EQUILIBRIUM
+1 early() {
+	sim.addSubpop("p1",Ne_pop); //create the ancestral that will derive to the outgroup species
+	community.rescheduleScriptBlock(s1, start=t0, end=t0); //split OUTG-wild
+	community.rescheduleScriptBlock(s2, start=t0+t1, end=t0+t1); //split dom-wild 
+	community.rescheduleScriptBlock(s3, start=t0+t1+tbot, end=t0+t1+tbot); //finish bottleneck
+	//sim.rescheduleScriptBlock(s4, start=t0+t1+tbot, end=t0+t1+tbot); //debugging fitness
+	community.rescheduleScriptBlock(s5, start=t0+t1+tbot+tend, end=t0+t1+tbot+tend); //end, print data
+	//sim.rescheduleScriptBlock(s6, start=t0+t1+tbot+tend, end=t0+t1+tbot+tend); //end, print data
+}
+
+//2. STEP. SPLIT OUTGROUP AND WILD
+////split in one new population p2 (Ne1w in our case)
+s1 500000 early() {
+	sim.addSubpopSplit("p2", Ne_pop, p1);
+	log1 = community.createLogFile(file_log1, logInterval=10);
+	log1.addCycle();   
+	log1.addCustomColumn("Fitness_p1", "mean(p1.cachedFitness(NULL));");
+    log1.addCustomColumn("Fitness_p2", "mean(p2.cachedFitness(NULL));");
+ }
+
+//3. STEP. SPLIT DOM AND WILD
+//split the initial population after t1=20*Ne_pop generations
+// Domestication started,  
+// resulting in a new smaller Ne1d population
+s2 1500000 early() {
+	sim.addSubpopSplit("p3", Ne_pop, p2);
+	// define the population size of the Ne1d during the same time
+	p3.setSubpopulationSize(Ne1d);
+	p3.setMigrationRates(p2, migration_rate);  // Migration Ne1d
+	log2 = community.createLogFile(file_log2, logInterval=1);
+	log2.addCycle();   
+	log2.addCustomColumn("Fitness_p1", "mean(p1.cachedFitness(NULL));");
+    log2.addCustomColumn("Fitness_p2", "mean(p2.cachedFitness(NULL));");
+    log2.addCustomColumn("Fitness_p3", "mean(p3.cachedFitness(NULL));");
+}
+
+//4. CHANGE FITNESS IN DOMESTICATED INDIVIDUALS: BOTTLENECK
+// a. step. We use h=0.5 
+// b. step. selection coefficient is selected randomly from the initial distribution. 
+// c. step. calculate new relative fitness for homozygous or heterozygous 
+// Slim only get inside the mutation callback function if there are new mutations!
+// fitness function is calculated at each generation
+
+mutation (m2) {
+	mut.setValue("SelCoeffp1", fitness_position_p1[mut.position]);
+	mut.setValue("SelCoeffp2", fitness_position_p2[mut.position]);
+	mut.setValue("SelCoeffp3", fitness_position_p3[mut.position]);
+	return T;
+}
+mutationEffect(m2,p1) {
+	hh = homozygous? 1 else h;
+	return 1.0 + hh * mut.getValue("SelCoeffp1"); // 1 + hs
+}
+mutationEffect(m2,p2) {
+	hh = homozygous? 1 else h;
+	return 1.0 + hh * mut.getValue("SelCoeffp2"); // 1 + hs
+}
+mutationEffect(m2,p3) {
+	hh = homozygous? 1 else h;
+	return 1.0 + hh * mut.getValue("SelCoeffp3"); // 1 + hs
+}
+
+//4. BOTTLENECK FINISH RECOVERING POPULATION SIZE.
+//assume that the population increases its size in Ne2d
+s3 1550000 early() {
+	p3.setSubpopulationSize(Ne_pop);
+	p3.setMigrationRates(p2, 0);  // Migration from here (different from bott?)
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////                 finish:  Output results                 /////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//5a. FINISH SIMULATION AND RESULTS 
+s5 1550000 late () {
+	///////////////////////////////////
+	// data for given sample_size
+	///////////////////////////////////
+	//print results file_output1
+	writeFile(filePath=file_output1,contents=("PARAMETERS;"),append=F);
+	writeFile(filePath=file_output1,contents=("seed: "+ seed),append=T);
+	//general definitions
+	writeFile(filePath=file_output1,contents=("nloci: "+ nloci),append=T);
+	writeFile(filePath=file_output1,contents=("size_gene: "+ size_gene),append=T);
+	writeFile(filePath=file_output1,contents=("Ne_pop: "+ Ne_pop),append=T);
+	//demographic process
+	writeFile(filePath=file_output1,contents=("t0: " + t0),append=T);
+	writeFile(filePath=file_output1,contents=("t1:" + t1),append=T);
+	writeFile(filePath=file_output1,contents=("tbot: " + tbot),append=T);
+	writeFile(filePath=file_output1,contents=("Ne1d: " + Ne1d),append=T);
+	writeFile(filePath=file_output1,contents=("tend: " + tend),append=T);
+	writeFile(filePath=file_output1,contents=("migration_rate: " + migration_rate),append=T);
+	writeFile(filePath=file_output1,contents=("mutation_rate: " + mutation_rate),append=T);
+	writeFile(filePath=file_output1,contents=("recombination_rate: " + recrate_within),append=T);
+	//output
+	writeFile(filePath=file_output1,contents=("sample_size1: " + sample_size1),append=T);
+	writeFile(filePath=file_output1,contents=("file_output1: " + file_output1),append=T);
+	//initial distributions of fitness
+	writeFile(filePath=file_output1,contents=("file_matrix: " + file_fm),append=T);
+	writeFile(filePath=file_output1,contents=("s_mean_beneficial: " + s_mean_beneficial),append=T);
+	writeFile(filePath=file_output1,contents=("s_mean_deleterious: " + s_mean_deleterious),append=T);
+	writeFile(filePath=file_output1,contents=("shape_deleterious: " + shape_deleterious),append=T);
+	writeFile(filePath=file_output1,contents=("h: " + h),append=T);
+	//modification of the fitness distributions: ONLY in the domesticated population
+	writeFile(filePath=file_output1,contents=("prop_del_anc: " + prop_del_anc),append=T);
+	writeFile(filePath=file_output1,contents=("change_prop: " + change_prop),append=T);
+	writeFile(filePath=file_output1,contents=("prop_del_new: " + prop_del_new),append=T);
+	writeFile(filePath=file_output1,contents=("\n"),append=T);
+	//results
+	p1.outputSample(sample_size1,replace=F,filePath=file_output1,append=T);
+	p2.outputSample(sample_size1,replace=F,filePath=file_output1,append=T);
+	p3.outputSample(sample_size1,replace=F,filePath=file_output1,append=T);
+	//p2.outputVCFsample(sample_size1,replace=F,filePath=file_vcf_output1,append=T);	
+	//p3.outputVCFsample(sample_size1,replace=F,filePath=file_vcf_output1,append=T);	
+
+	///////////////////////////////////
+	// ms output for given sample size
+	///////////////////////////////////
+
+	writeFile(filePath=file_output1_ms,contents=("PARAMETERS;"),append=F);
+	writeFile(filePath=file_output1_ms,contents=("seed: "+ seed),append=T);
+	//general definitions
+	writeFile(filePath=file_output1_ms,contents=("nloci: "+ nloci),append=T); 
+	writeFile(filePath=file_output1_ms,contents=("size_gene: "+ size_gene),append=T);
+	writeFile(filePath=file_output1_ms,contents=("Ne_pop: "+ Ne_pop),append=T);
+	//demographic process
+	writeFile(filePath=file_output1_ms,contents=("t0: " + t0),append=T); 
+	writeFile(filePath=file_output1_ms,contents=("t1:" + t1),append=T); 
+	writeFile(filePath=file_output1_ms,contents=("tbot: " + tbot),append=T);
+	writeFile(filePath=file_output1_ms,contents=("Ne1d: " + Ne1d),append=T); 
+	writeFile(filePath=file_output1_ms,contents=("tend: " + tend),append=T); 
+	writeFile(filePath=file_output1_ms,contents=("migration_rate: " + migration_rate),append=T);
+	//output
+	writeFile(filePath=file_output1_ms,contents=("sample_size1: " + sample_size1),append=T); 
+	writeFile(filePath=file_output1_ms,contents=("file_output1: " + file_output1),append=T); 
+	//initial distributions of fitness
+	writeFile(filePath=file_output1_ms,contents=("file_matrix: " + file_fm),append=T);
+	writeFile(filePath=file_output1_ms,contents=("s_mean_beneficial: " + s_mean_beneficial),append=T);
+	writeFile(filePath=file_output1_ms,contents=("s_mean_deleterious: " + s_mean_deleterious),append=T);
+	writeFile(filePath=file_output1_ms,contents=("shape_deleterious: " + shape_deleterious),append=T);
+	writeFile(filePath=file_output1_ms,contents=("h: " + h),append=T);
+	//modification of the fitness distributions: ONLY in the domesticated population
+	writeFile(filePath=file_output1_ms,contents=("prop_del_anc: " + prop_del_anc),append=T); 
+	writeFile(filePath=file_output1_ms,contents=("change_prop: " + change_prop),append=T); 
+	writeFile(filePath=file_output1_ms,contents=("prop_del_new: " + prop_del_new),append=T);
+	writeFile(filePath=file_output1_ms,contents=("\n"),append=T);
+
+	//for (i in 1:10){
+		g_1 = sample(p2.genomes,sample_size1,F);
+		g_2 = sample(p3.genomes,sample_size1,F);
+		g_3 = sample(p1.genomes,sample_size1,F); 
+ 		//p1 is the outgroup, because of this I move it to g_3
+		//Concatenate the three samples
+		g_123=c(g_1,g_2,g_3);
+		//Get the unique mutations in the sample, sorted by position
+		m = sortBy(unique(g_123.mutations),"position");
+		// print the number of segregating sites
+		writeFile(filePath=file_output1_ms,contents=("//"),append=T);
+		writeFile(filePath=file_output1_ms,contents=("segsites: "+ size(m)),append=T);
+		//print the positions
+		positions = format("%.6f", m.position / (sim.chromosome.lastPosition+1));
+		writeFile(filePath=file_output1_ms,contents=("positions: "+ paste(positions,sep=" ")),append=T);
+		//print the sampled genomes
+		for (genome in g_123){
+			hasMuts = (match(m,genome.mutations) >= 0);
+			writeFile(filePath=file_output1_ms,contents=(paste(asInteger(hasMuts),sep="")),append=T);
+		}
+	//}
+	
+	///////////////////////////////////
+	// data for the full dataset	
+	///////////////////////////////////
+
+	//sim.outputFull(filePath=("/Users/ivourlaki/FIRST_alt_project/codes/fold/slim_full.txt"));
+	//sim.outputFull(filePath=file_full);
+	//print("Simulation finished");
+	//finish simulation
+	//sim.simulationFinished();
+}
