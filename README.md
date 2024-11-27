@@ -76,7 +76,6 @@ This third bash script takes the SLiM output from the previous step and converts
 
 The fourth bash script converts the VCF for each parameter combination into 100 boostrapped SFS for synonymous and nonsynonymous polymorphisms. Each simulation iteration is treated as an independent chromosome chunk. The 1D and 2D-SFS are then converted to polyDFE and dadi format respectively. We've provided the contents of the domesticationDFE/results/SFS/ folder. We hope this makes your life a little easier! If you're a user interested in evaluating your own software in our simulations, we'd love to have you! You can find the 1D-SFS and 2D-SFS in the domesticationDFE/results/SFS/ folder.
 
-# Note to self: Provide ../results/Wild_Domesticated_individuals.txt file
 
 ```sh 5_run_dadi_in_parallel.sh
 ```
