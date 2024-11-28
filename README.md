@@ -53,48 +53,56 @@ If you're using this GitHub repo (which has the latest version of this pipeline)
 The bash scripts are set up in a specific order to make sure that each task is done right: 
 
 
-```sh 
-1_make_slim_sims_jobs_list.sh
+```
+   sh 1_make_slim_sims_jobs_list.sh
 ```
 
 This first bash script simply generates the list of all the 2,400 names/jobs/files we want to simulate and analyse. This is stored in domesticationDFE/results/.
 
 
-```sh 
-2_run_slim_sims_array.sh
+```
+   sh 2_run_slim_sims_array.sh
 ```
 
 This is where we actually simulate the 24 scenarios (100 replicates for each), all simulation results are stored in domesticationDFE/results/Simulations directory. This is a VERY COMPUTATIONALLY INTENSIVE STEP. Just a quick note to let you know that at ZENODO (), we've made it super easy for you to avoid running all the simulations. 
 
 
-```sh 
-3_process_slim_outputs_VCF.sh
+```
+   sh 3_process_slim_outputs_VCF.sh
 ```
 
 This third bash script takes the SLiM output from the previous step and converts it into VCF-like files. Note that since we are only interested in allele frequencies, haplotype information is missing in these VCFs, genotypes are not phased, but they could potentially be if the information from the "Genomes:" section in "output_sample_file.txt" is used.
 
 
-```sh 
-4_process_slim_outputs_SFS.sh
+```
+   sh 4_process_slim_outputs_SFS.sh
 ```
 
-The fourth bash script converts the VCF for each parameter combination into 100 boostrapped SFS for synonymous and nonsynonymous polymorphisms. Each simulation iteration is treated as an independent chromosome chunk. The 1D and 2D-SFS are then converted to polyDFE and dadi format respectively. We've provided the contents of the domesticationDFE/results/SFS/ folder. We hope this makes your life a little easier! If you're a user interested in evaluating your own software in our simulations, we'd love to have you! You can find the 1D-SFS and 2D-SFS in the domesticationDFE/results/SFS/ folder.
+The fourth bash script converts the VCF for each parameter combination into 100 boostrapped SFS for synonymous and nonsynonymous polymorphisms. Each simulation iteration is treated as an independent chromosome chunk. The 1D and 2D-SFS are then converted to polyDFE and dadi format respectively. We've provided the contents of the domesticationDFE/results/SFS/ folder. We hope this makes your life a little easier! If you're a user interested in just evaluating your own software in our simulations, we'd love to have you! You can find the 1D-SFS and 2D-SFS in the domesticationDFE/results/SFS/ folder.
 
 
-```sh 
-5_run_dadi_in_parallel.sh
+```
+   sh 5_run_dadi_in_parallel.sh
 ```
 
-In this step we do all the inference with dadi. Detailed comments can be found within in the Python scripts in this bash script.  We've also included the contents of the domesticationDFE/results/data_frames/ folder after running the dadi and polyDFE inferences.  We've made sure to include all the data frames you'll need to reproduce all the figures in the manuscript (except for Supplementary Figures 6 and 7, which require the contents of the domesticationDFE/results/VCF/large folder).
-
-# Stopped HERE
+In this step we do all the inference with dadi, which includes joint demographic inference, DFE cache calculation and joint DFE inference. Detailed comments can be found in the Python scripts in this bash script. In this step, we make the DIAGNOSTIC PLOTS of the demographic fits to the original synonymous 2D-SFS, which can be found in SuppFig1.
 
 
+```
+   sh 6_run_polyDFE_in_parallel.sh
+```
+
+Here we do all inference with polyDFE, which includes multiple models where some aspects of the DFE are shared between populations and others are inferred independently.  
+
+```
+   sh 7_wrap_up.sh
+```
+
+All the results of dadi and polyDFE inference are stored at domesticationDFE/results/data_frames/ folder. We've also made available the contents of the domesticationDFE/results/data_frames/ folder.  We've made sure to include all the data frames you'll need to reproduce all the figures in the manuscript (except for Supplementary Figures 6 and 7, which require the generation of the contents in the domesticationDFE/results/VCF/ folder).
 
 
-## Usage 
 
-
+### note to self test_positive_dfe.sh and plot_vourlaki_fit.sh go hand by hand bc we plot the fit to the ORIGINAL nsyn 2D-SFS
 
 
 
