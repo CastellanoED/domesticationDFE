@@ -85,7 +85,7 @@ The fourth bash script converts the VCF for each parameter combination into 100 
    sh 5_run_dadi_in_parallel.sh
 ```
 
-In this step we do all the inference with dadi, which includes joint demographic inference, DFE cache calculation and joint DFE inference. Detailed comments can be found in the Python scripts in this bash script. In this step, we make the DIAGNOSTIC PLOTS of the demographic fits to the original synonymous 2D-SFS, which can be found in SuppFig1.
+In this step we do all the inference with dadi, which includes joint demographic inference, DFE cache calculation and joint DFE inference. Detailed comments can be found in the Python scripts in this bash script. In this step, we make the DIAGNOSTIC PLOTS of the joint demographic and DFE fits to the original synonymous and non-synonymous 2D-SFS, which can be found in SuppFig1.
 
 
 ```
@@ -102,7 +102,6 @@ All the results of dadi and polyDFE inference are stored at domesticationDFE/res
 
 
 
-### note to self test_positive_dfe.sh and plot_vourlaki_fit.sh go hand by hand bc we plot the fit to the ORIGINAL nsyn 2D-SFS
 
 
 
