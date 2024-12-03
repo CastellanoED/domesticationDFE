@@ -10,7 +10,7 @@ If using this software or simulations in a publication, please cite the above ar
 
 ## Contact
 
-David Castellano, dcastellano at arizona . edu, for bug reports and questions about how this pipeline works.
+David Castellano, dcastellano at arizona . edu, and Ioanna Vourlaki, ioanna . vourlaki at irta . cat, for bug reports and questions about how this pipeline works.
 
 Sebastian Ramos-Onsins, sebastian . ramos at cragenomica . es, for questions about the SLIM simulation recipe (slim_code_mod4_NEW.slim) and how we assign selection coefficients to different sites and populations in the genome (calculate_fitness_position_matrix.R). 
 
