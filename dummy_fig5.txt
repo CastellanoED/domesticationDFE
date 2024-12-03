@@ -1,0 +1,26 @@
+scenario	true_pchange	mig	pchange
+0% beneficial mutations	0	0	0
+0% beneficial mutations	0.05	0	0.05
+0% beneficial mutations	0.25	0	0.25
+0% beneficial mutations	0	0.01	0
+0% beneficial mutations	0.05	0.01	0.05
+0% beneficial mutations	0.25	0.01	0.25
+10% nearly neutral beneficial mutations	0	0	0
+10% nearly neutral beneficial mutations	0.05	0	0.05
+10% nearly neutral beneficial mutations	0.25	0	0.25
+10% nearly neutral beneficial mutations	0	0.01	0
+10% nearly neutral beneficial mutations	0.05	0.01	0.05
+10% nearly neutral beneficial mutations	0.25	0.01	0.25
+1% weakly beneficial mutations	0	0	0
+1% weakly beneficial mutations	0.05	0	0.05
+1% weakly beneficial mutations	0.25	0	0.25
+1% weakly beneficial mutations	0	0.01	0
+1% weakly beneficial mutations	0.05	0.01	0.05
+1% weakly beneficial mutations	0.25	0.01	0.25
+0.1% strongly beneficial mutations	0	0	0
+0.1% strongly beneficial mutations	0.05	0	0.05
+0.1% strongly beneficial mutations	0.25	0	0.25
+0.1% strongly beneficial mutations	0	0.01	0
+0.1% strongly beneficial mutations	0.05	0.01	0.05
+0.1% strongly beneficial mutations	0.25	0.01	0.25
+

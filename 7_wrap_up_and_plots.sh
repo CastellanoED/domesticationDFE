@@ -43,7 +43,7 @@ rm ../results/col3.txt ../results/col4.txt
 
 for NEWPOSSEL in 0 2 20 200
   do   
-    for pb in two_pb uniq_pb #or uniq_pb for the original_fs
+    for pb in two_pb uniq_pb 
       do
         for POSSEL in 0 2 20 200  
           do
@@ -94,5 +94,10 @@ for MIGRATION in 0 0.01
       done
   done
 
+
+### These two script preprocess polyDFE and dadi outputs before generating the figures and tables of the manuscript:
+
+Rscript dadi_output_figures.R
+Rscript polyDFE_output_figures.R
 
 exit 0
