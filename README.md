@@ -66,7 +66,7 @@ This first bash script simply generates the list of all the 2,400 names/jobs/fil
     sh 2_run_slim_sims_array.sh
 ```
 
-This is where we actually simulate the 24 scenarios (100 replicates for each), all simulation results are stored in domesticationDFE/results/Simulations directory. This is a VERY COMPUTATIONALLY INTENSIVE STEP. Just a quick note to let you know that at ZENODO (), we've made it super easy for you to avoid running all the simulations. 
+This is where we actually simulate the 24 scenarios (100 replicates for each), all simulation results are stored in domesticationDFE/results/Simulations directory. This is a VERY COMPUTATIONALLY INTENSIVE STEP. The compressed folder containing all the simulation outputs is available on request, it's over 10Gb in size.
 
 
 ```
@@ -104,9 +104,8 @@ All the processed results of dadi and polyDFE inference are stored at domesticat
 
 
 ```
-	Rscript manuscript_figures_and_tables.R
-	Rscript demography_dadi_plots.R #generates Fig2
-	Rscript diversity_PnPs_slim.R #generates SuppFig6-7
+Rscript manuscript_figures_and_tables.R
+Rscript diversity_PnPs_slim.R #generates SuppFig6-7
 ```
 
 
