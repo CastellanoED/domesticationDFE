@@ -66,7 +66,7 @@ This first bash script simply generates the list of all the 2,400 names/jobs/fil
     sh 2_run_slim_sims_array.sh
 ```
 
-This is where we actually simulate the 24 scenarios (100 replicates for each), all simulation results are stored in domesticationDFE/results/Simulations directory. This is a VERY COMPUTATIONALLY INTENSIVE STEP. The compressed folder containing all the simulation outputs is available on request, it's over 10Gb in size.
+This is where we actually simulate the 24 scenarios (100 replicates for each), all simulation results are stored in domesticationDFE/results/Simulations directory. This is a VERY COMPUTATIONALLY INTENSIVE STEP. The compressed folder containing all the simulation outputs is at ZENODO, it's 13Gb in size. In here we also generate the dataframes with the selection coefficient of every possible mutation in the two populations (domesticationDFE/results/fitness_position_matrix). This is also a large directory (31.2Gb after compression).
 
 
 ```
